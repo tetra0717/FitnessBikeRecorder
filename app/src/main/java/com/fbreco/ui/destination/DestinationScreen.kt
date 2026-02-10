@@ -1,17 +1,32 @@
 package com.fbreco.ui.destination
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,6 +54,11 @@ fun DestinationScreen(
     val selectedPoint by viewModel.selectedPoint.collectAsState()
     val progressPercent by viewModel.progressPercent.collectAsState()
     val isCompleted by viewModel.isCompleted.collectAsState()
+    val startPoint by viewModel.startPoint.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
+    val snapshot by viewModel.serviceSnapshot.collectAsState()
 
     val cameraState = rememberCameraState(
         firstPosition = CameraPosition(
@@ -47,12 +67,20 @@ fun DestinationScreen(
         ),
     )
 
-    val pointsGeoJson = remember(selectedPoint, activeDestination) {
-        buildPointsGeoJson(selectedPoint, activeDestination, viewModel.startPoint)
+    LaunchedEffect(startPoint) {
+        cameraState.animateTo(CameraPosition(target = startPoint, zoom = 5.0))
     }
 
-    val lineGeoJson = remember(activeDestination) {
-        buildLineGeoJson(activeDestination, viewModel.startPoint)
+    val pointsGeoJson = remember(selectedPoint, activeDestination, startPoint) {
+        buildPointsGeoJson(selectedPoint, activeDestination, startPoint)
+    }
+
+    val lineGeoJson = remember(activeDestination, startPoint) {
+        buildLineGeoJson(activeDestination, startPoint)
+    }
+
+    val progressMarkerGeoJson = remember(startPoint, activeDestination, snapshot) {
+        buildProgressMarkerGeoJson(startPoint, activeDestination, snapshot)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -69,6 +97,7 @@ fun DestinationScreen(
         ) {
             val pointSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(pointsGeoJson))
             val lineSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(lineGeoJson))
+            val markerSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(progressMarkerGeoJson))
 
             LineLayer(
                 id = "route-line",
@@ -88,58 +117,144 @@ fun DestinationScreen(
                 strokeColor = const(Color.White),
                 strokeWidth = const(2.dp),
             )
+
+            CircleLayer(
+                id = "progress-marker",
+                source = markerSource,
+                color = const(Color(0xFF00CC00)),
+                radius = const(12.dp),
+                strokeColor = const(Color.White),
+                strokeWidth = const(3.dp),
+            )
         }
 
         if (activeDestination == null && selectedPoint == null) {
             Card(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .fillMaxWidth(),
             ) {
-                Text(
-                    text = "\u5730\u56F3\u3092\u9577\u62BC\u3057\u3057\u3066\u76EE\u7684\u5730\u3092\u8A2D\u5B9A",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Column(modifier = Modifier.padding(16.dp)) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.updateSearchQuery(it) },
+                        label = { Text("目的地を検索") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    if (isSearching) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .align(Alignment.CenterHorizontally),
+                            )
+                        }
+                    }
+                    if (searchResults.isNotEmpty()) {
+                        LazyColumn(modifier = Modifier.height(200.dp)) {
+                            items(searchResults) { result ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { viewModel.selectSearchResult(result) }
+                                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                                ) {
+                                    Text(
+                                        text = result.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                    val subtitle = listOfNotNull(result.city, result.country).joinToString(", ")
+                                    if (subtitle.isNotEmpty()) {
+                                        Text(
+                                            text = subtitle,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                                HorizontalDivider()
+                            }
+                        }
+                    } else if (searchQuery.isEmpty()) {
+                        Text(
+                            text = "地図を長押し、または検索で目的地を設定",
+                            modifier = Modifier.padding(top = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
 
         activeDestination?.let { dest ->
+            var showResetDialog by remember { mutableStateOf(false) }
+            val liveDistance = dest.accumulatedDistanceMeters + snapshot.accumulatorDistanceMeters
+            val livePercent = (liveDistance / dest.targetDistanceMeters * 100.0).coerceIn(0.0, 100.0)
+
             Card(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(16.dp),
             ) {
-                Text(
-                    text = "${String.format("%.1f", dest.accumulatedDistanceMeters / 1000.0)} km / " +
-                        "${String.format("%.1f", dest.targetDistanceMeters / 1000.0)} km " +
-                        "(${String.format("%.0f", progressPercent)}%)",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium,
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "${String.format("%.1f", liveDistance / 1000.0)} km / " +
+                            "${String.format("%.1f", dest.targetDistanceMeters / 1000.0)} km " +
+                            "(${String.format("%.0f", livePercent)}%)",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { showResetDialog = true }) {
+                        Text("目的地をリセット")
+                    }
+                }
+            }
+
+            if (showResetDialog) {
+                AlertDialog(
+                    onDismissRequest = { showResetDialog = false },
+                    title = { Text("目的地のリセット") },
+                    text = { Text("現在の目的地をリセットしますか？\n進捗は失われます。") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.resetDestination()
+                            showResetDialog = false
+                        }) {
+                            Text("リセット")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showResetDialog = false }) {
+                            Text("キャンセル")
+                        }
+                    },
                 )
             }
         }
     }
 
     selectedPoint?.let { point ->
-        val distance = viewModel.calculateStraightLineDistance(viewModel.startPoint, point)
+        val distance = viewModel.calculateStraightLineDistance(startPoint, point)
         AlertDialog(
             onDismissRequest = { viewModel.clearSelection() },
-            title = { Text("\u76EE\u7684\u5730\u306E\u78BA\u8A8D") },
+            title = { Text("目的地の確認") },
             text = {
                 Text(
-                    "\u3053\u306E\u5834\u6240\u3092\u76EE\u7684\u5730\u306B\u8A2D\u5B9A\u3057\u307E\u3059\u304B\uFF1F\n" +
-                        "\u76F4\u7DDA\u8DDD\u96E2: ${String.format("%.1f", distance / 1000.0)} km",
+                    "この場所を目的地に設定しますか？\n" +
+                        "直線距離: ${String.format("%.1f", distance / 1000.0)} km",
                 )
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.confirmDestination() }) {
-                    Text("\u3053\u306E\u5834\u6240\u3092\u76EE\u7684\u5730\u306B\u3059\u308B")
+                    Text("この場所を目的地にする")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.clearSelection() }) {
-                    Text("\u30AD\u30E3\u30F3\u30BB\u30EB")
+                    Text("キャンセル")
                 }
             },
         )
@@ -148,21 +263,21 @@ fun DestinationScreen(
     if (isCompleted) {
         AlertDialog(
             onDismissRequest = { },
-            title = { Text("\uD83C\uDF89 \u76EE\u7684\u5730\u306B\u5230\u9054\uFF01") },
+            title = { Text("🎉 目的地に到達！") },
             text = {
                 Text(
-                    "\u304A\u3081\u3067\u3068\u3046\u3054\u3056\u3044\u307E\u3059\uFF01\n" +
-                        "\u76EE\u6A19\u8DDD\u96E2\u3092\u9054\u6210\u3057\u307E\u3057\u305F\uFF01\uFF08${String.format("%.0f", progressPercent)}%\uFF09",
+                    "おめでとうございます！\n" +
+                        "目標距離を達成しました！（${String.format("%.0f", progressPercent)}%）",
                 )
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.completeAndReset() }) {
-                    Text("\u65B0\u3057\u3044\u76EE\u7684\u5730\u3092\u8A2D\u5B9A")
+                    Text("新しい目的地を設定")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.completeAndReset() }) {
-                    Text("\u9589\u3058\u308B")
+                    Text("閉じる")
                 }
             },
         )
@@ -196,5 +311,19 @@ private fun buildLineGeoJson(
     return """{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"LineString","coordinates":[[${startPoint.longitude},${startPoint.latitude}],[${dest.longitude},${dest.latitude}]]}}]}"""
 }
 
+private fun buildProgressMarkerGeoJson(
+    startPoint: Position,
+    activeDestination: com.fbreco.data.entity.Destination?,
+    snapshot: com.fbreco.service.RideSnapshot,
+): String {
+    val dest = activeDestination ?: return """{"type":"FeatureCollection","features":[]}"""
+    val totalDistance = dest.accumulatedDistanceMeters + snapshot.accumulatorDistanceMeters
+    val ratio = (totalDistance / dest.targetDistanceMeters).coerceIn(0.0, 1.0)
+    val lat = startPoint.latitude + (dest.latitude - startPoint.latitude) * ratio
+    val lng = startPoint.longitude + (dest.longitude - startPoint.longitude) * ratio
+    return """{"type":"FeatureCollection","features":[${pointFeature(lng, lat)}]}"""
+}
+
 private fun pointFeature(lng: Double, lat: Double): String =
     """{"type":"Feature","geometry":{"type":"Point","coordinates":[$lng,$lat]}}"""
+

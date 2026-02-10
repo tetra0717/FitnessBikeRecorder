@@ -63,11 +63,11 @@ Fix all 3 critical bugs so the app works correctly on real devices — accumulat
 - Debug APK builds cleanly
 
 ### Definition of Done
-- [ ] `./gradlew assembleDebug` succeeds
-- [ ] `./gradlew testDebugUnitTest` passes (36 tests)
-- [ ] `startForegroundService` is called in app code
-- [ ] `POST_NOTIFICATIONS` is in manifest and runtime permission flow
-- [ ] Mapbox token is configured via BuildConfig
+- [x] `./gradlew assembleDebug` succeeds
+- [x] `./gradlew testDebugUnitTest` passes (36 tests)
+- [x] `startForegroundService` is called in app code
+- [x] `POST_NOTIFICATIONS` is in manifest and runtime permission flow
+- [x] Mapbox token is configured via BuildConfig
 
 ### Must Have
 - Service starts automatically when app opens (after permissions granted)
@@ -230,10 +230,10 @@ Task 3: Final build verification + all tests pass
 
   > **AGENT-EXECUTABLE VERIFICATION ONLY**
 
-  - [ ] `app/src/main/AndroidManifest.xml` contains `android.permission.POST_NOTIFICATIONS`
-  - [ ] `app/src/main/java/com/fbreco/ui/PermissionScreen.kt` contains `Manifest.permission.POST_NOTIFICATIONS` with `TIRAMISU` API check
-  - [ ] `app/src/main/java/com/fbreco/MainActivity.kt` contains `startForegroundService` call for `BikeForegroundService`
-  - [ ] `./gradlew assembleDebug` → exit code 0
+  - [x] `app/src/main/AndroidManifest.xml` contains `android.permission.POST_NOTIFICATIONS`
+  - [x] `app/src/main/java/com/fbreco/ui/PermissionScreen.kt` contains `Manifest.permission.POST_NOTIFICATIONS` with `TIRAMISU` API check
+  - [x] `app/src/main/java/com/fbreco/MainActivity.kt` contains `startForegroundService` call for `BikeForegroundService`
+  - [x] `./gradlew assembleDebug` → exit code 0
 
   **Agent-Executed QA Scenarios:**
 
@@ -371,10 +371,10 @@ Task 3: Final build verification + all tests pass
 
   > **AGENT-EXECUTABLE VERIFICATION ONLY**
 
-  - [ ] `gradle.properties` contains `MAPBOX_ACCESS_TOKEN` property
-  - [ ] `app/build.gradle.kts` contains `buildConfigField` for `MAPBOX_ACCESS_TOKEN`
-  - [ ] `app/src/main/java/com/fbreco/FBRecoApplication.kt` contains `MapboxOptions.accessToken` assignment
-  - [ ] `./gradlew assembleDebug` → exit code 0 (even with empty token — should compile)
+  - [x] `gradle.properties` contains `MAPBOX_ACCESS_TOKEN` property
+  - [x] `app/build.gradle.kts` contains `buildConfigField` for `MAPBOX_ACCESS_TOKEN`
+  - [x] `app/src/main/java/com/fbreco/FBRecoApplication.kt` contains `MapboxOptions.accessToken` assignment
+  - [x] `./gradlew assembleDebug` → exit code 0 (even with empty token — should compile)
 
   **Agent-Executed QA Scenarios:**
 
@@ -457,9 +457,9 @@ Task 3: Final build verification + all tests pass
 
   > **AGENT-EXECUTABLE VERIFICATION ONLY**
 
-  - [ ] `./gradlew clean assembleDebug` → exit code 0
-  - [ ] `./gradlew testDebugUnitTest` → exit code 0, all 36 tests pass
-  - [ ] APK file exists at `app/build/outputs/apk/debug/app-debug.apk`
+  - [x] `./gradlew clean assembleDebug` → exit code 0
+  - [x] `./gradlew testDebugUnitTest` → exit code 0, all 36 tests pass
+  - [x] APK file exists at `app/build/outputs/apk/debug/app-debug.apk`
 
   **Agent-Executed QA Scenarios:**
 
@@ -511,13 +511,13 @@ export ANDROID_HOME="C:\\Users\\tetra\\Android\\Sdk"
 ```
 
 ### Final Checklist
-- [ ] BikeForegroundService is started from MainActivity after permissions granted
-- [ ] POST_NOTIFICATIONS declared in manifest
-- [ ] POST_NOTIFICATIONS requested at runtime on API 33+
-- [ ] Mapbox access token wired via BuildConfig
-- [ ] All 36 existing unit tests pass
-- [ ] Debug APK builds successfully
-- [ ] No new features added (bug fixes only)
+- [x] BikeForegroundService is started from MainActivity after permissions granted
+- [x] POST_NOTIFICATIONS declared in manifest
+- [x] POST_NOTIFICATIONS requested at runtime on API 33+
+- [x] Mapbox access token wired via BuildConfig
+- [x] All 36 existing unit tests pass
+- [x] Debug APK builds successfully
+- [x] No new features added (bug fixes only)
 
 ### Post-Fix: User Manual Testing Required
 After deploying the fixed APK to the real device, the user should verify:

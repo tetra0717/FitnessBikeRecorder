@@ -72,6 +72,9 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     implementation(libs.maplibre.compose)
+    implementation(libs.play.services.location)
+    implementation(libs.coroutines.play.services)
+    implementation(libs.okhttp)
 
     implementation(libs.core.ktx)
 

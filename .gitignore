@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android
+local.properties
+*.apk
+*.aab
+
+# IDE
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# Kotlin
+.kotlin/
+
+# JVM crash logs
+*.hprof
+hs_err_pid*
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Python (leftover)
+__pycache__/
+*.pyc
+
+# Misc
+main.py
+mise.toml
