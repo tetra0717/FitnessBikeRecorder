@@ -18,8 +18,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"${project.findProperty("MAPBOX_ACCESS_TOKEN") ?: ""}\"")
     }
 
     buildTypes {
@@ -43,7 +41,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 }
 
@@ -70,8 +67,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    implementation(libs.mapbox.maps)
-    implementation(libs.mapbox.maps.compose)
+    implementation(libs.maplibre.compose)
 
     implementation(libs.core.ktx)
 
