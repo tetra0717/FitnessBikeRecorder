@@ -6,11 +6,13 @@ New-Item -ItemType Directory -Path $installFolder -Force | Out-Null
 $destinationExe = Join-Path $installFolder 'FitnessBikeRecorderPC.exe'
 Get-Process -Name FitnessBikeRecorderPC -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $destinationExe } | Stop-Process
 Get-ChildItem -LiteralPath $PSScriptRoot -File | Copy-Item -Destination $installFolder -Force
-$sourceLicenses = Join-Path $PSScriptRoot 'licenses'
-if (Test-Path -LiteralPath $sourceLicenses) {
-    $installedLicenses = Join-Path $installFolder 'licenses'
-    New-Item -ItemType Directory -Path $installedLicenses -Force | Out-Null
-    Get-ChildItem -LiteralPath $sourceLicenses -File | Copy-Item -Destination $installedLicenses -Force
+foreach ($contentFolder in @('licenses', 'docs')) {
+    $sourceContent = Join-Path $PSScriptRoot $contentFolder
+    if (Test-Path -LiteralPath $sourceContent) {
+        $installedContent = Join-Path $installFolder $contentFolder
+        New-Item -ItemType Directory -Path $installedContent -Force | Out-Null
+        Get-ChildItem -LiteralPath $sourceContent -File | Copy-Item -Destination $installedContent -Force
+    }
 }
 $startupKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 New-Item -Path $startupKey -Force | Out-Null
