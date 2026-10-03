@@ -14,8 +14,8 @@ android {
         applicationId = "com.fbreco"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.coroutines.play.services)
     implementation(libs.okhttp)
+    implementation(libs.nanohttpd.websocket)
 
     implementation(libs.core.ktx)
 

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fbreco.ble.BleConnectionState
 import com.fbreco.service.RideSnapshot
+import com.fbreco.pclink.PcLinkDialog
 
 @Composable
 fun HomeScreen(
@@ -52,6 +53,7 @@ fun HomeScreen(
     val serviceRunning by viewModel.serviceRunning.collectAsState()
     val snapshot by viewModel.serviceSnapshot.collectAsState()
     var showScanDialog by remember { mutableStateOf(false) }
+    var showPcLinkDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -66,6 +68,8 @@ fun HomeScreen(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
         )
+
+        TextButton(onClick = { showPcLinkDialog = true }) { Text("PC連携") }
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -122,6 +126,9 @@ fun HomeScreen(
             },
             onDismiss = { showScanDialog = false },
         )
+    }
+    if (showPcLinkDialog) {
+        PcLinkDialog(viewModel.pcLinkServer, onDismiss = { showPcLinkDialog = false })
     }
 }
 

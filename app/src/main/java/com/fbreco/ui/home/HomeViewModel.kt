@@ -9,6 +9,7 @@ import com.fbreco.data.entity.DailyRecord
 import com.fbreco.data.repository.DailyRecordRepository
 import com.fbreco.service.BikeForegroundService
 import com.fbreco.service.RideSnapshot
+import com.fbreco.pclink.PcLinkServer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val bleManager: BleManager,
     private val dailyRecordRepository: DailyRecordRepository,
+    val pcLinkServer: PcLinkServer,
 ) : ViewModel() {
 
     val connectionState: StateFlow<BleConnectionState> = bleManager.connectionState
