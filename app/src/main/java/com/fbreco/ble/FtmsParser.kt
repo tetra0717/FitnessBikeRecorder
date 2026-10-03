@@ -8,7 +8,7 @@ import java.nio.ByteOrder
  *
  * Byte format per FTMS spec:
  * - Bytes 0-1: Flags (uint16, little-endian)
- * - Bytes 2-3: Instantaneous Speed (uint16, 0.01 km/h resolution) — always present
+ * - Instantaneous Speed (uint16, 0.01 km/h) when More Data (bit 0) is clear
  * - Conditional fields based on flags:
  *   - Bit 1: Average Speed (uint16) — skip
  *   - Bit 2: Instantaneous Cadence (uint16, 0.5 rpm resolution)
@@ -23,20 +23,24 @@ object FtmsParser {
         val speedKmh: Double,
         val cadenceRpm: Double,
         val powerWatts: Int,
-        val isActive: Boolean
+        val isActive: Boolean,
+        val hasPedalData: Boolean = true,
     )
 
     fun parse(data: ByteArray): BikeData? {
-        if (data.size < 4) return null
+        if (data.size < 2) return null
 
         val buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
 
         // 1. Read flags (uint16)
         val flags = buffer.short.toInt() and 0xFFFF
 
-        // 2. Speed (always present, uint16, 0.01 km/h)
-        val speedRaw = buffer.short.toInt() and 0xFFFF
-        val speedKmh = speedRaw * 0.01
+        // FTMS may omit speed in a continuation packet (More Data flag).
+        var speedKmh = 0.0
+        if (flags and 1 == 0) {
+            if (buffer.remaining() < 2) return null
+            speedKmh = (buffer.short.toInt() and 0xFFFF) * 0.01
+        }
 
         // 3. Average Speed (Bit 1) — skip if present
         if (flags and (1 shl 1) != 0) {
@@ -85,7 +89,8 @@ object FtmsParser {
             speedKmh = speedKmh,
             cadenceRpm = cadenceRpm,
             powerWatts = powerWatts,
-            isActive = isActive
+            isActive = isActive,
+            hasPedalData = flags and ((1 shl 2) or (1 shl 6)) != 0,
         )
     }
 

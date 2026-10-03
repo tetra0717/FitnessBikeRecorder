@@ -16,6 +16,7 @@ import com.fbreco.ble.BleManager
 import com.fbreco.ble.FtmsParser
 import com.fbreco.data.repository.DailyRecordRepository
 import com.fbreco.data.repository.DestinationRepository
+import com.fbreco.pclink.PcLinkServer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -48,6 +49,7 @@ class BikeForegroundService : LifecycleService() {
     @Inject lateinit var bleManager: BleManager
     @Inject lateinit var dailyRecordRepository: DailyRecordRepository
     @Inject lateinit var destinationRepository: DestinationRepository
+    @Inject lateinit var pcLinkServer: PcLinkServer
 
     private val accumulator = RideAccumulator()
 
@@ -70,6 +72,7 @@ class BikeForegroundService : LifecycleService() {
         startBikeDataCollection()
         startPeriodicFlush()
         startNotificationUpdater()
+        pcLinkServer.start(lifecycleScope)
 
         Log.d(TAG, "Service created")
     }
@@ -84,6 +87,7 @@ class BikeForegroundService : LifecycleService() {
         flushJob?.cancel()
         collectJob?.cancel()
         notificationUpdateJob?.cancel()
+        pcLinkServer.stop()
 
         // Synchronous-ish flush on destroy: launch and don't cancel
         // (lifecycleScope will be cancelled, so we use a direct coroutine)
@@ -173,6 +177,7 @@ class BikeForegroundService : LifecycleService() {
     }
 
     private fun onBikeDataReceived(data: FtmsParser.BikeData) {
+        pcLinkServer.onBikeData(data)
         accumulator.onBikeData(data, System.currentTimeMillis())
     }
 
